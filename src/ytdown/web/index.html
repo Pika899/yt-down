@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>yt down</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Readable without Tailwind too (CDN unreachable): keep the hidden attribute working. */
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900 antialiased">
+  <div class="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight">yt down</h1>
+      <p class="mt-1 text-slate-600">Scarica video e playlist di YouTube sul tuo computer.</p>
+    </header>
+
+    <div id="tools-warning" role="alert" hidden
+         class="mb-6 rounded-lg border border-amber-400 bg-amber-50 p-4 text-sm text-amber-900"></div>
+
+    <main class="space-y-6">
+
+      <!-- 1. Links -->
+      <section aria-labelledby="links-title" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <h2 id="links-title" class="text-lg font-semibold">1. Incolla i link</h2>
+        <form id="add-form" class="mt-3">
+          <label for="links" class="block text-sm text-slate-600">
+            Un link per riga: video singoli oppure playlist.
+          </label>
+          <textarea id="links" rows="4" spellcheck="false" autocomplete="off"
+                    placeholder="https://www.youtube.com/watch?v=…&#10;https://www.youtube.com/playlist?list=…"
+                    class="mt-2 block w-full rounded-lg border border-slate-300 bg-white p-3 font-mono text-sm
+                           placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600"></textarea>
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            <button type="submit" id="add-button"
+                    class="rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800
+                           focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50">
+              Analizza
+            </button>
+            <p id="add-message" role="status" aria-live="polite" class="text-sm text-slate-700"></p>
+          </div>
+        </form>
+        <p class="mt-3 text-xs text-slate-600">
+          Un link a un video dentro una playlist scarica solo quel video. Per tutta la playlist usa il link
+          della playlist (contiene <code class="rounded bg-slate-100 px-1">/playlist?list=</code>).
+        </p>
+      </section>
+
+      <!-- 2. Choice -->
+      <section id="choice" aria-labelledby="choice-title" hidden
+               class="rounded-xl bg-white p-5 shadow-sm ring-2 ring-indigo-600">
+        <h2 id="choice-title" class="text-lg font-semibold">2. Scegli come scaricare</h2>
+        <p id="choice-summary" class="mt-1 text-sm text-slate-700"></p>
+        <form id="choice-form" class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="quality" class="block text-sm font-medium">Risoluzione massima</label>
+            <select id="quality"
+                    class="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm
+                           focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600"></select>
+          </div>
+          <div id="language-field" hidden>
+            <label for="language" class="block text-sm font-medium">Lingua audio</label>
+            <select id="language"
+                    class="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm
+                           focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600"></select>
+          </div>
+          <div class="sm:col-span-2">
+            <button type="submit" id="start-button"
+                    class="rounded-lg bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800
+                           focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 disabled:opacity-50">
+              Scarica
+            </button>
+            <p id="choice-hint" class="mt-2 text-xs text-slate-600"></p>
+          </div>
+        </form>
+      </section>
+
+      <!-- Problems -->
+      <section id="problems" aria-labelledby="problems-title" hidden
+               class="rounded-xl border border-red-300 bg-red-50 p-5">
+        <h2 id="problems-title" class="text-sm font-semibold text-red-900">Link non elaborati</h2>
+        <ul id="problems-list" class="mt-2 space-y-1 text-sm text-red-900"></ul>
+      </section>
+
+      <!-- 3. Queue -->
+      <section aria-labelledby="queue-title" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="queue-title" class="text-lg font-semibold">3. Coda</h2>
+          <button type="button" id="clear-button" hidden
+                  class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50
+                         focus:outline-none focus:ring-2 focus:ring-indigo-600">
+            Togli i conclusi
+          </button>
+        </div>
+        <p id="queue-status" role="status" aria-live="polite" class="mt-1 text-sm text-slate-700"></p>
+        <ul id="queue" class="mt-4 divide-y divide-slate-200"></ul>
+        <p id="queue-empty" class="mt-4 text-sm text-slate-600">Nessun video in coda.</p>
+      </section>
+
+      <!-- Folder -->
+      <section aria-labelledby="folder-title" class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <h2 id="folder-title" class="text-lg font-semibold">Cartella dei download</h2>
+        <form id="folder-form" class="mt-3 flex flex-wrap items-end gap-3">
+          <div class="min-w-0 flex-1 basis-64">
+            <label for="folder" class="block text-sm text-slate-600">Percorso completo della cartella</label>
+            <input id="folder" type="text" spellcheck="false" autocomplete="off"
+                   class="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2 font-mono text-sm
+                          focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600">
+          </div>
+          <button type="submit"
+                  class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50
+                         focus:outline-none focus:ring-2 focus:ring-indigo-600">
+            Salva
+          </button>
+          <button type="button" id="open-button"
+                  class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50
+                         focus:outline-none focus:ring-2 focus:ring-indigo-600">
+            Apri cartella
+          </button>
+        </form>
+        <p id="folder-message" role="status" aria-live="polite" class="mt-2 text-sm text-slate-700"></p>
+        <p class="mt-2 text-xs text-slate-600">
+          Le playlist vengono salvate in una sottocartella con il loro nome, con i video numerati.
+        </p>
+      </section>
+    </main>
+
+    <footer class="mt-8 text-xs text-slate-600">
+      <p>Usa yt down solo per contenuti tuoi o che hai il diritto di scaricare.</p>
+      <p id="version" class="mt-1"></p>
+      <p id="offline" role="alert" hidden class="mt-2 font-semibold text-red-800">
+        Connessione con yt down persa: riavvia l'app dal suo collegamento.
+      </p>
+    </footer>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const STATE_LABEL = {
+    analyzing: "Analisi…",
+    ready: "In attesa della scelta",
+    queued: "In coda",
+    downloading: "Download",
+    merging: "Unione audio e video…",
+    done: "Completato",
+    failed: "Errore",
+    cancelled: "Annullato",
+  };
+  const STATE_STYLE = {
+    analyzing: "bg-slate-200 text-slate-800",
+    ready: "bg-indigo-100 text-indigo-900",
+    queued: "bg-slate-200 text-slate-800",
+    downloading: "bg-sky-100 text-sky-900",
+    merging: "bg-sky-100 text-sky-900",
+    done: "bg-emerald-100 text-emerald-900",
+    failed: "bg-red-100 text-red-900",
+    cancelled: "bg-slate-200 text-slate-800",
+  };
+  const ACTIVE = new Set(["downloading", "merging"]);
+  const FINISHED = new Set(["done", "failed", "cancelled"]);
+
+  let languageNames = null;
+  try { languageNames = new Intl.DisplayNames(["it"], { type: "language" }); } catch (_) { /* fallback to codes */ }
+
+  function languageName(code) {
+    if (!code) return "originale";
+    try {
+      const name = languageNames && languageNames.of(code);
+      if (name && name !== code) return name.charAt(0).toUpperCase() + name.slice(1);
+    } catch (_) { /* invalid code */ }
+    return code;
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes) return "";
+    const units = ["B", "KB", "MB", "GB"];
+    let value = bytes, unit = 0;
+    while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+    return `${value.toFixed(value >= 100 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+  }
+
+  function formatTime(seconds) {
+    if (seconds == null || !isFinite(seconds)) return "";
+    const s = Math.max(0, Math.round(seconds));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    const pad = (n) => String(n).padStart(2, "0");
+    return h ? `${h}:${pad(m)}:${pad(r)}` : `${m}:${pad(r)}`;
+  }
+
+  async function api(path, body) {
+    const options = body === undefined
+      ? {}
+      : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+    const response = await fetch(path, options);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `Errore ${response.status}`);
+    return data;
+  }
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;  // never innerHTML: titles come from YouTube
+    return node;
+  }
+
+  // ------------------------------------------------------------ rendering
+
+  let optionsSignature = "";
+  let folderShown = null;
+
+  function renderChoice(state) {
+    const options = state.options;
+    const busy = state.analyzing + state.expanding;
+    const section = $("choice");
+    if (options.total === 0) { section.hidden = true; optionsSignature = ""; return; }
+    section.hidden = false;
+
+    $("choice-summary").textContent = options.total === 1
+      ? "1 video pronto."
+      : `${options.total} video pronti. La scelta vale per tutti.`;
+    $("start-button").textContent = options.total === 1 ? "Scarica il video" : `Scarica ${options.total} video`;
+    $("choice-hint").textContent = busy
+      ? `Analisi ancora in corso per ${busy} ${busy === 1 ? "elemento" : "elementi"}: puoi aspettare oppure avviare subito quelli pronti.`
+      : (options.total > 1 ? "Se un video non ha la risoluzione o la lingua scelta, usa la più vicina e te lo segnala in coda." : "");
+
+    // Rebuild the selects only when the available options change, to keep the user's selection.
+    const signature = JSON.stringify([options.qualities, options.languages, options.multi_language, options.total]);
+    if (signature === optionsSignature) return;
+    optionsSignature = signature;
+
+    const quality = $("quality"), previousQuality = quality.value;
+    quality.replaceChildren();
+    quality.append(new Option("Migliore disponibile", ""));
+    for (const [value, count] of options.qualities) {
+      const suffix = options.total > 1 ? ` — ${count}/${options.total} video` : "";
+      quality.append(new Option(`${value}p${suffix}`, String(value)));
+    }
+    if ([...quality.options].some((o) => o.value === previousQuality)) quality.value = previousQuality;
+
+    const language = $("language"), previousLanguage = language.value;
+    $("language-field").hidden = !options.multi_language;
+    language.replaceChildren();
+    language.append(new Option("Originale", ""));
+    for (const [code, count] of options.languages) {
+      const suffix = options.total > 1 ? ` — ${count}/${options.total} video` : "";
+      language.append(new Option(`${languageName(code)}${suffix}`, code));
+    }
+    if (options.multi_language && [...language.options].some((o) => o.value === previousLanguage)) {
+      language.value = previousLanguage;
+    }
+  }
+
+  function actionButton(label, itemId, action) {
+    const button = el("button",
+      "rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-800 hover:bg-slate-50 " +
+      "focus:outline-none focus:ring-2 focus:ring-indigo-600", label);
+    button.type = "button";
+    button.dataset.item = itemId;
+    button.dataset.action = action;
+    return button;
+  }
+
+  function renderItem(item) {
+    const row = el("li", "py-3");
+    const top = el("div", "flex flex-wrap items-start justify-between gap-2");
+    const text = el("div", "min-w-0 flex-1");
+
+    const title = el("p", "break-words text-sm font-medium", item.title || item.url);
+    text.append(title);
+
+    const meta = [];
+    if (item.playlist_title) meta.push(`${item.playlist_title} · n. ${item.playlist_index}`);
+    if (item.duration) meta.push(formatTime(item.duration));
+    if (item.quality) {
+      const parts = [`${item.quality}p`, languageName(item.audio_language), (item.container || "").toUpperCase()];
+      if (item.est_size) parts.push(`circa ${formatBytes(item.est_size)}`);
+      meta.push(parts.filter(Boolean).join(" · "));
+    }
+    if (meta.length) text.append(el("p", "mt-0.5 break-words text-xs text-slate-600", meta.join("  |  ")));
+    top.append(text);
+
+    top.append(el("span",
+      `shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATE_STYLE[item.state] || ""}`,
+      STATE_LABEL[item.state] || item.state));
+    row.append(top);
+
+    if (ACTIVE.has(item.state)) {
+      const known = item.progress != null;
+      const percent = known ? Math.round(item.progress * 100) : 0;
+      const bar = el("div", "mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200");
+      bar.setAttribute("role", "progressbar");
+      bar.setAttribute("aria-label", `Avanzamento di ${item.title || "video"}`);
+      bar.setAttribute("aria-valuemin", "0");
+      bar.setAttribute("aria-valuemax", "100");
+      if (known) bar.setAttribute("aria-valuenow", String(percent));
+      const fill = el("div", `h-full rounded-full bg-indigo-700 ${known ? "" : "animate-pulse"}`);
+      fill.style.width = known ? `${percent}%` : "100%";
+      bar.append(fill);
+      row.append(bar);
+
+      const details = [];
+      if (known) details.push(`${percent}%`);
+      if (item.speed) details.push(`${formatBytes(item.speed)}/s`);
+      if (item.eta != null) details.push(`ancora ${formatTime(item.eta)}`);
+      if (details.length) row.append(el("p", "mt-1 text-xs text-slate-600", details.join(" · ")));
+    }
+
+    for (const note of item.notes) row.append(el("p", "mt-1 break-words text-xs text-amber-800", note));
+    if (item.error) row.append(el("p", "mt-1 break-words text-xs text-red-800", item.error));
+    if (item.state === "done" && item.output_path) {
+      row.append(el("p", "mt-1 break-all font-mono text-xs text-slate-600", item.output_path));
+    }
+
+    const actions = el("div", "mt-2 flex flex-wrap gap-2");
+    if (!FINISHED.has(item.state)) actions.append(actionButton("Annulla", item.id, "cancel"));
+    if (item.state === "failed" || item.state === "cancelled") actions.append(actionButton("Riprova", item.id, "retry"));
+    if (!ACTIVE.has(item.state)) actions.append(actionButton("Togli", item.id, "remove"));
+    row.append(actions);
+    return row;
+  }
+
+  let queueSignature = "";
+
+  function renderQueue(state) {
+    const signature = JSON.stringify(state.items);
+    if (signature !== queueSignature) {
+      queueSignature = signature;
+      const focused = document.activeElement && document.activeElement.dataset
+        ? [document.activeElement.dataset.item, document.activeElement.dataset.action] : null;
+      $("queue").replaceChildren(...state.items.map(renderItem));
+      if (focused && focused[0]) {
+        const again = $("queue").querySelector(`[data-item="${CSS.escape(focused[0])}"][data-action="${focused[1]}"]`);
+        if (again) again.focus();
+      }
+    }
+    $("queue-empty").hidden = state.items.length > 0;
+    $("clear-button").hidden = !state.items.some((i) => FINISHED.has(i.state));
+
+    const count = (name) => state.items.filter((i) => i.state === name).length;
+    const parts = [];
+    if (state.expanding) parts.push(`lettura di ${state.expanding} playlist…`);
+    if (state.analyzing) parts.push(`${state.analyzing} in analisi`);
+    const downloading = count("downloading") + count("merging");
+    if (downloading) parts.push(`${downloading} in download`);
+    if (count("queued")) parts.push(`${count("queued")} in coda`);
+    if (count("done")) parts.push(`${count("done")} completati`);
+    if (count("failed")) parts.push(`${count("failed")} con errore`);
+    $("queue-status").textContent = parts.join(" · ");
+  }
+
+  function renderProblems(state) {
+    $("problems").hidden = state.problems.length === 0;
+    $("problems-list").replaceChildren(...state.problems.map((problem) => {
+      const li = el("li", "break-all");
+      li.append(el("span", "font-mono", problem.input), document.createTextNode(` — ${problem.message}`));
+      return li;
+    }));
+  }
+
+  function renderTools(state) {
+    const missing = [];
+    if (!state.tools.ytdlp) missing.push("yt-dlp");
+    if (!state.tools.deno) missing.push("Deno");
+    if (!state.tools.ffmpeg) missing.push("ffmpeg");
+    const warning = $("tools-warning");
+    warning.hidden = missing.length === 0;
+    warning.textContent = missing.length
+      ? `Componenti mancanti: ${missing.join(", ")}. Riavvia yt down dal suo collegamento per reinstallarli.`
+      : "";
+    $("version").textContent = state.tools.ytdlp ? `yt-dlp ${state.tools.ytdlp}` : "";
+    if (folderShown !== state.output_dir && document.activeElement !== $("folder")) {
+      $("folder").value = state.output_dir;
+      folderShown = state.output_dir;
+    }
+  }
+
+  // --------------------------------------------------------------- polling
+
+  let timer = null;
+
+  async function refresh() {
+    clearTimeout(timer);
+    let delay = 3000;
+    try {
+      const state = await api("/api/state");
+      $("offline").hidden = true;
+      renderTools(state);
+      renderProblems(state);
+      renderChoice(state);
+      renderQueue(state);
+      const working = state.analyzing || state.expanding ||
+        state.items.some((i) => ACTIVE.has(i.state) || i.state === "queued");
+      if (working) delay = 800;
+    } catch (_) {
+      $("offline").hidden = false;
+    }
+    timer = setTimeout(refresh, delay);
+  }
+
+  // ---------------------------------------------------------------- events
+
+  $("add-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = $("add-message"), button = $("add-button");
+    button.disabled = true;
+    try {
+      const result = await api("/api/add", { text: $("links").value });
+      const parts = [];
+      if (result.videos) parts.push(`${result.videos} video`);
+      if (result.playlists) parts.push(`${result.playlists} playlist`);
+      message.textContent = parts.length ? `Aggiunti: ${parts.join(", ")}.`
+        : (result.rejected ? "Nessun link valido: vedi sotto." : "Nessun link nuovo trovato.");
+      if (parts.length) $("links").value = "";
+    } catch (error) {
+      message.textContent = error.message;
+    } finally {
+      button.disabled = false;
+      refresh();
+    }
+  });
+
+  $("choice-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = $("start-button");
+    button.disabled = true;
+    try {
+      const quality = $("quality").value, language = $("language").value;
+      await api("/api/start", {
+        max_quality: quality ? Number(quality) : null,
+        audio_language: !$("language-field").hidden && language ? language : null,
+      });
+    } catch (error) {
+      $("choice-hint").textContent = error.message;
+    } finally {
+      button.disabled = false;
+      refresh();
+    }
+  });
+
+  $("queue").addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+    button.disabled = true;
+    try { await api(`/api/items/${encodeURIComponent(button.dataset.item)}/${button.dataset.action}`, {}); }
+    catch (_) { /* state refresh shows the outcome */ }
+    refresh();
+  });
+
+  $("clear-button").addEventListener("click", async () => {
+    try { await api("/api/clear", {}); } catch (_) { /* ignore */ }
+    refresh();
+  });
+
+  $("folder-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = $("folder-message");
+    try {
+      const result = await api("/api/settings", { output_dir: $("folder").value });
+      folderShown = null;
+      message.textContent = `Cartella salvata: ${result.output_dir}`;
+    } catch (error) {
+      message.textContent = error.message;
+    }
+    $("folder").blur();
+    refresh();
+  });
+
+  $("open-button").addEventListener("click", async () => {
+    try { await api("/api/open", {}); $("folder-message").textContent = ""; }
+    catch (error) { $("folder-message").textContent = error.message; }
+  });
+
+  refresh();
+})();
+</script>
+</body>
+</html>
