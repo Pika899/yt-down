@@ -43,7 +43,7 @@ Gli utenti finali avviano `start-windows.bat` / `start-mac.command`, che usano
 
 ## Orchestrazione
 
-Il modello predefinito del progetto (orchestratore) è Fable 5.2, impostato in
+Il modello predefinito del progetto (orchestratore) è Opus 5.5, impostato in
 `.claude/settings.json`. Delega così:
 
 | Agente | Quando |
