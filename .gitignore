@@ -18,3 +18,7 @@ downloads/
 *.part
 *.ytdl
 vendor/bin/
+
+# Installer build outputs
+installer/bin/
+installer/Output/

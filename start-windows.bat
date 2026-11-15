@@ -4,7 +4,10 @@ chcp 65001 >nul
 title yt down
 cd /d "%~dp0"
 
-rem uv manages Python and every dependency; install it once if missing.
+rem The installer ships uv in bin\; the ZIP version installs it once if missing.
+if exist "%~dp0bin\uv.exe" set "PATH=%~dp0bin;%PATH%"
+
+rem uv manages Python and every dependency.
 where uv >nul 2>nul
 if errorlevel 1 (
     if exist "%USERPROFILE%\.local\bin\uv.exe" (

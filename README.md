@@ -3,18 +3,27 @@
 Scarica video e playlist di YouTube sul tuo computer, scegliendo risoluzione e lingua
 audio. Funziona nel browser ma gira tutto sul tuo PC: nessun sito esterno, nessun account.
 
-## Installazione (una volta sola)
+## Installazione su Windows (consigliata)
+
+1. Scarica **[yt-down-setup.exe](https://github.com/Pika899/yt-down/releases/latest/download/yt-down-setup.exe)**.
+2. Aprilo. Se compare "Windows ha protetto il PC": **Ulteriori informazioni** →
+   **Esegui comunque** (succede perché l'installer non è firmato).
+3. Segui i passaggi: non servono permessi di amministratore. Alla fine trovi
+   **yt down** sul Desktop e nel menu Start.
+
+Al primo avvio yt down scarica da solo Python, yt-dlp, Deno e ffmpeg (qualche minuto,
+serve internet). Per disinstallarlo: Impostazioni → App → yt down → Disinstalla.
+
+## Installazione dallo ZIP (Mac, o Windows senza installer)
 
 1. Su GitHub apri questa repository → pulsante verde **Code** → **Download ZIP**.
 2. Estrai lo ZIP dove preferisci (es. `Documenti\yt-down`). **Non avviarlo dall'interno
    dello ZIP**: va estratto.
 
-Non serve installare altro: al primo avvio lo script scarica da solo Python, yt-dlp,
-Deno e ffmpeg (qualche minuto, serve internet).
-
 ## Avvio
 
-- **Windows:** doppio clic su `start-windows.bat`.
+- **Windows con installer:** icona **yt down** sul Desktop o nel menu Start.
+- **Windows dallo ZIP:** doppio clic su `start-windows.bat`.
   Se compare "Windows ha protetto il PC": **Ulteriori informazioni** → **Esegui comunque**.
 - **Mac:** clic destro su `start-mac.command` → **Apri** → **Apri** (solo la prima volta;
   poi basta il doppio clic).
@@ -41,8 +50,9 @@ Si apre una finestra nera (lasciala aperta: è il motore) e il browser su
 ## Aggiornare
 
 YouTube cambia spesso. A ogni avvio lo script aggiorna yt-dlp da solo.
-Per aggiornare yt down: scarica di nuovo lo ZIP e sostituisci la cartella (le
-impostazioni sono salvate altrove e non si perdono).
+Per aggiornare yt down: riscarica e riapri `yt-down-setup.exe` (oppure, se usi lo ZIP,
+scaricalo di nuovo e sostituisci la cartella). Le impostazioni sono salvate altrove e
+non si perdono.
 
 ## Problemi
 

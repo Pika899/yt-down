@@ -1,0 +1,76 @@
+name: Windows installer
+
+# Push a tag like v1.0.0 to build, smoke-test and publish yt-down-setup.exe as a release.
+# Run it manually (workflow_dispatch) to build and test without publishing.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download uv
+        run: |
+          $zip = "$env:RUNNER_TEMP\uv.zip"
+          Invoke-WebRequest https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip -OutFile $zip
+          Expand-Archive $zip -DestinationPath installer\bin -Force
+          installer\bin\uv.exe --version
+
+      - name: Unit tests on Windows
+        run: installer\bin\uv.exe run pytest -q
+
+      - name: Build installer
+        run: |
+          $version = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}".TrimStart("v") } else { "0.0.0-dev" }
+          choco install innosetup -y --no-progress | Out-Null
+          $iscc = Get-ChildItem "C:\Program Files*\Inno Setup*\ISCC.exe" | Select-Object -First 1
+          & $iscc.FullName "/DAppVersion=$version" installer\ytdown.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-Item installer\Output\yt-down-setup.exe | Format-List Name, Length
+
+      - name: Smoke test the installed app
+        run: |
+          $dir = "$env:LOCALAPPDATA\Programs\yt down"
+          Start-Process -Wait installer\Output\yt-down-setup.exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', "/DIR=`"$dir`""
+          Set-Location $dir
+          .\bin\uv.exe sync --frozen --no-dev
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .\bin\uv.exe run --no-sync python -c "from ytdown.core import tools; s = tools.status(); print(s); assert s['ytdlp'] and s['deno'] and s['ffmpeg']"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $server = Start-Process -PassThru -WorkingDirectory $dir -FilePath "$dir\bin\uv.exe" -ArgumentList 'run', '--no-sync', 'python', '-m', 'ytdown', '--no-browser', '--port', '8791'
+          $ok = $false
+          foreach ($i in 1..60) {
+            try { $r = Invoke-RestMethod http://127.0.0.1:8791/api/ping; Write-Host "ping: $($r | ConvertTo-Json -Compress)"; $ok = $true; break } catch { Start-Sleep 1 }
+          }
+          Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
+          if (-not $ok) { throw "yt down did not answer on /api/ping" }
+
+      - name: Probe a real video (informational, CI IPs may be blocked by YouTube)
+        continue-on-error: true
+        run: |
+          Set-Location "$env:LOCALAPPDATA\Programs\yt down"
+          .\bin\uv.exe run --no-sync python -c "from ytdown.core import probe; v = probe.probe_video('https://youtu.be/jNQXAC9IVRw'); print(v.title, len(v.video_streams), 'video streams')"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yt-down-setup
+          path: installer/Output/yt-down-setup.exe
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" installer/Output/yt-down-setup.exe `
+            --title "yt down ${{ github.ref_name }}" `
+            --notes "Installer per Windows: scarica **yt-down-setup.exe**, aprilo e segui i passaggi. Istruzioni complete nel README."
