@@ -30,7 +30,7 @@ Release, a ogni tag `v*` (`git tag v1.1.1 && git push origin v1.1.1`):
 - Windows `yt-down-setup.exe` (`installer/ytdown.iss`, Inno Setup): sorgenti + `uv.exe`,
   lancia `start-windows.bat`.
 - Mac `yt-down-mac.dmg` (`macos/build-app.sh`, provabile in locale): `yt down.app` con
-  sorgenti + uv universale; `macos/launcher.sh` apre Terminale su `start-mac.command`, che
+  sorgenti + uv arm64 (solo Apple Silicon, niente Rosetta); `macos/launcher.sh` apre Terminale su `start-mac.command`, che
   dentro un `.app` tiene il venv in `~/Library/Application Support/yt down/venv` e usa
   `PYTHONPATH=src` (il bundle può essere di sola lettura o traslocato). Firma ad-hoc, non
   notarizzata.

@@ -17,7 +17,7 @@ serve internet). Per disinstallarlo: Impostazioni → App → yt down → Disins
 ## Installazione su Mac (consigliata)
 
 1. Scarica **[yt-down-mac.dmg](https://github.com/Pika899/yt-down/releases/latest/download/yt-down-mac.dmg)**
-   (funziona su Mac Apple Silicon e Intel, macOS 11 o successivo).
+   (solo Mac con chip Apple: M1 o successivi, macOS 11 o successivo).
 2. Aprilo e trascina **yt down** nella cartella **Applicazioni**.
 3. Il primo avvio: apri yt down da Applicazioni. macOS dice che non può verificarlo
    (l'app non è firmata da Apple): premi **Fine**, poi vai in **Impostazioni di Sistema →

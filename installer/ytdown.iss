@@ -24,6 +24,8 @@ WizardStyle=modern
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName=yt down
+SetupIconFile=..\assets\ytdown.ico
+UninstallDisplayIcon={app}\ytdown.ico
 
 [Languages]
 Name: "italian"; MessagesFile: "compiler:Languages\Italian.isl"
@@ -38,10 +40,11 @@ Source: "..\uv.lock"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\start-windows.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "bin\uv.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
+Source: "..\assets\ytdown.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\yt down"; Filename: "{app}\start-windows.bat"; WorkingDir: "{app}"
-Name: "{autodesktop}\yt down"; Filename: "{app}\start-windows.bat"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autoprograms}\yt down"; Filename: "{app}\start-windows.bat"; WorkingDir: "{app}"; IconFilename: "{app}\ytdown.ico"
+Name: "{autodesktop}\yt down"; Filename: "{app}\start-windows.bat"; WorkingDir: "{app}"; IconFilename: "{app}\ytdown.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\start-windows.bat"; Description: "Avvia yt down"; WorkingDir: "{app}"; Flags: nowait postinstall skipifsilent shellexec

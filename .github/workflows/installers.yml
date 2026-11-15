@@ -71,7 +71,7 @@ jobs:
           version="0.0.0-dev"
           if [ "${{ github.ref_type }}" = "tag" ]; then version="${GITHUB_REF_NAME#v}"; fi
           macos/build-app.sh "$version" dist
-          lipo -archs "dist/yt down.app/Contents/Resources/app/bin/uv"
+          test "$(lipo -archs "dist/yt down.app/Contents/Resources/app/bin/uv")" = "arm64"
           codesign --verify --deep --strict "dist/yt down.app"
           ls -l dist/yt-down-mac.dmg
 
