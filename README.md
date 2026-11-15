@@ -14,7 +14,21 @@ audio. Funziona nel browser ma gira tutto sul tuo PC: nessun sito esterno, nessu
 Al primo avvio yt down scarica da solo Python, yt-dlp, Deno e ffmpeg (qualche minuto,
 serve internet). Per disinstallarlo: Impostazioni → App → yt down → Disinstalla.
 
-## Installazione dallo ZIP (Mac, o Windows senza installer)
+## Installazione su Mac (consigliata)
+
+1. Scarica **[yt-down-mac.dmg](https://github.com/Pika899/yt-down/releases/latest/download/yt-down-mac.dmg)**
+   (funziona su Mac Apple Silicon e Intel, macOS 11 o successivo).
+2. Aprilo e trascina **yt down** nella cartella **Applicazioni**.
+3. Il primo avvio: apri yt down da Applicazioni. macOS dice che non può verificarlo
+   (l'app non è firmata da Apple): premi **Fine**, poi vai in **Impostazioni di Sistema →
+   Privacy e sicurezza**, scorri in basso e premi **Apri comunque** accanto a "yt down".
+   Dalla volta dopo si apre normalmente.
+
+Al primo avvio yt down scarica da solo Python, yt-dlp, Deno e ffmpeg (circa un minuto,
+serve internet). Per disinstallarlo: trascina yt down nel Cestino e, se vuoi, cancella
+la cartella `~/Library/Application Support/yt down`.
+
+## Installazione dallo ZIP (senza installer)
 
 1. Su GitHub apri questa repository → pulsante verde **Code** → **Download ZIP**.
 2. Estrai lo ZIP dove preferisci (es. `Documenti\yt-down`). **Non avviarlo dall'interno
@@ -23,9 +37,10 @@ serve internet). Per disinstallarlo: Impostazioni → App → yt down → Disins
 ## Avvio
 
 - **Windows con installer:** icona **yt down** sul Desktop o nel menu Start.
+- **Mac con l'app:** **yt down** in Applicazioni (o dal Launchpad).
 - **Windows dallo ZIP:** doppio clic su `start-windows.bat`.
   Se compare "Windows ha protetto il PC": **Ulteriori informazioni** → **Esegui comunque**.
-- **Mac:** clic destro su `start-mac.command` → **Apri** → **Apri** (solo la prima volta;
+- **Mac dallo ZIP:** clic destro su `start-mac.command` → **Apri** → **Apri** (solo la prima volta;
   poi basta il doppio clic).
 
 Si apre una finestra nera (lasciala aperta: è il motore) e il browser su
@@ -50,7 +65,8 @@ Si apre una finestra nera (lasciala aperta: è il motore) e il browser su
 ## Aggiornare
 
 YouTube cambia spesso. A ogni avvio lo script aggiorna yt-dlp da solo.
-Per aggiornare yt down: riscarica e riapri `yt-down-setup.exe` (oppure, se usi lo ZIP,
+Per aggiornare yt down: riscarica e riapri `yt-down-setup.exe` su Windows, o riscarica il
+`.dmg` e sostituisci l'app in Applicazioni su Mac (oppure, se usi lo ZIP,
 scaricalo di nuovo e sostituisci la cartella). Le impostazioni sono salvate altrove e
 non si perdono.
 

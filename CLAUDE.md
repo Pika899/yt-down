@@ -25,10 +25,17 @@ uv run python -m ytdown.capture <url> <nome> [--flat]   # nuova fixture in tests
 Gli utenti finali avviano `start-windows.bat` / `start-mac.command`, che usano
 `uv sync --frozen`: dopo aver cambiato dipendenze va committato `uv.lock`.
 
-Installer Windows (`installer/ytdown.iss`, Inno Setup): lo costruisce, testa e pubblica
-come Release `.github/workflows/windows-installer.yml` a ogni tag `v*`
-(`git tag v1.0.1 && git push origin v1.0.1`). Installa i sorgenti + `uv.exe` e lancia
-`start-windows.bat`, così yt-dlp resta aggiornabile: non congelare l'app con PyInstaller.
+Installer: `.github/workflows/installers.yml` costruisce, testa e pubblica in un'unica
+Release, a ogni tag `v*` (`git tag v1.1.1 && git push origin v1.1.1`):
+- Windows `yt-down-setup.exe` (`installer/ytdown.iss`, Inno Setup): sorgenti + `uv.exe`,
+  lancia `start-windows.bat`.
+- Mac `yt-down-mac.dmg` (`macos/build-app.sh`, provabile in locale): `yt down.app` con
+  sorgenti + uv universale; `macos/launcher.sh` apre Terminale su `start-mac.command`, che
+  dentro un `.app` tiene il venv in `~/Library/Application Support/yt down/venv` e usa
+  `PYTHONPATH=src` (il bundle può essere di sola lettura o traslocato). Firma ad-hoc, non
+  notarizzata.
+
+Entrambi lasciano yt-dlp aggiornabile a ogni avvio: non congelare l'app con PyInstaller.
 
 ## Regole architetturali
 

@@ -1,7 +1,8 @@
-name: Windows installer
+name: Installers
 
-# Push a tag like v1.0.0 to build, smoke-test and publish yt-down-setup.exe as a release.
-# Run it manually (workflow_dispatch) to build and test without publishing.
+# Push a tag like v1.1.0 to build, smoke-test and publish yt-down-setup.exe (Windows) and
+# yt-down-mac.dmg (macOS) in one release. Run it manually (workflow_dispatch) to build and
+# test without publishing.
 on:
   push:
     tags: ["v*"]
@@ -11,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  windows:
     runs-on: windows-latest
     defaults:
       run:
@@ -55,22 +56,65 @@ jobs:
           Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
           if (-not $ok) { throw "yt down did not answer on /api/ping" }
 
-      - name: Probe a real video (informational, CI IPs may be blocked by YouTube)
-        continue-on-error: true
-        run: |
-          Set-Location "$env:LOCALAPPDATA\Programs\yt down"
-          .\bin\uv.exe run --no-sync python -c "from ytdown.core import probe; v = probe.probe_video('https://youtu.be/jNQXAC9IVRw'); print(v.title, len(v.video_streams), 'video streams')"
-
       - uses: actions/upload-artifact@v4
         with:
           name: yt-down-setup
           path: installer/Output/yt-down-setup.exe
 
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app and DMG
+        run: |
+          version="0.0.0-dev"
+          if [ "${{ github.ref_type }}" = "tag" ]; then version="${GITHUB_REF_NAME#v}"; fi
+          macos/build-app.sh "$version" dist
+          lipo -archs "dist/yt down.app/Contents/Resources/app/bin/uv"
+          codesign --verify --deep --strict "dist/yt down.app"
+          ls -l dist/yt-down-mac.dmg
+
+      - name: Unit tests on macOS
+        run: '"dist/yt down.app/Contents/Resources/app/bin/uv" run pytest -q'
+
+      - name: Smoke test the app from the mounted DMG
+        run: |
+          hdiutil attach -nobrowse -readonly dist/yt-down-mac.dmg
+          bash "/Volumes/yt down/yt down.app/Contents/Resources/app/start-mac.command" --no-browser --port 8792 > engine.log 2>&1 &
+          ok=""
+          for i in $(seq 1 120); do
+            if curl -fs -m 2 http://127.0.0.1:8792/api/ping; then ok=1; break; fi
+            sleep 2
+          done
+          cat engine.log
+          venv="$HOME/Library/Application Support/yt down/venv"
+          PYTHONPATH="/Volumes/yt down/yt down.app/Contents/Resources/app/src" "$venv/bin/python" -c "from ytdown.core import tools; s = tools.status(); print(s); assert s['ytdlp'] and s['deno'] and s['ffmpeg']"
+          pkill -f "python -m ytdown" || true
+          test -n "$ok"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yt-down-mac
+          path: dist/yt-down-mac.dmg
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
       - name: Publish release
-        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" installer/Output/yt-down-setup.exe `
-            --title "yt down ${{ github.ref_name }}" `
-            --notes "Installer per Windows: scarica **yt-down-setup.exe**, aprilo e segui i passaggi. Istruzioni complete nel README."
+          gh release create "${{ github.ref_name }}" assets/yt-down-setup.exe assets/yt-down-mac.dmg \
+            --repo "${{ github.repository }}" \
+            --title "yt down ${{ github.ref_name }}" \
+            --notes "**Windows:** scarica \`yt-down-setup.exe\`, aprilo e segui i passaggi.
+          **Mac:** scarica \`yt-down-mac.dmg\`, aprilo e trascina **yt down** in Applicazioni.
+          Istruzioni complete (e cosa fare con gli avvisi di sicurezza) nel README."
