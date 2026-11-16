@@ -9,7 +9,12 @@ class SelectionError(Exception):
     """The video has no separate video or audio stream to download."""
 
 
+MP3_BITRATE = 192_000  # bits per second of the MP3 we produce
+
+
 def resolve(video: VideoInfo, choice: Choice) -> ResolvedFormat:
+    if choice.audio_only:
+        return _resolve_audio_only(video, choice)
     if not video.video_streams:
         raise SelectionError("Nessuno stream video scaricabile per questo video.")
     if not video.audio_tracks:
@@ -26,6 +31,23 @@ def resolve(video: VideoInfo, choice: Choice) -> ResolvedFormat:
         quality=quality,
         audio_language=track.language,
         container=container,
+        est_size=size,
+        notes=tuple(notes),
+    )
+
+
+def _resolve_audio_only(video: VideoInfo, choice: Choice) -> ResolvedFormat:
+    """Only the audio track (same language rules as video downloads), converted to MP3."""
+    if not video.audio_tracks:
+        raise SelectionError("Nessuna traccia audio scaricabile per questo video.")
+    notes: list[str] = []
+    track = _pick_audio(video, choice, "mp3", notes)
+    size = int(video.duration * MP3_BITRATE / 8) if video.duration else None
+    return ResolvedFormat(
+        format_spec=track.format_id,
+        quality=0,
+        audio_language=track.language,
+        container="mp3",
         est_size=size,
         notes=tuple(notes),
     )

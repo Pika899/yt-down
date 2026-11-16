@@ -78,6 +78,7 @@ class Choice:
 
     max_quality: int | None  # None = best available
     audio_language: str | None  # None = original track; matched on the primary subtag
+    audio_only: bool = False  # True = only the audio track, converted to MP3
 
 
 @dataclass(frozen=True)
@@ -85,9 +86,9 @@ class ResolvedFormat:
     """Result of applying a Choice to one VideoInfo."""
 
     format_spec: str  # explicit ids, e.g. "137+140-10"
-    quality: int
+    quality: int  # video height; 0 for audio-only
     audio_language: str | None
-    container: str  # "mp4" or "mkv"
+    container: str  # "mp4" or "mkv"; "mp3" for audio-only
     est_size: int | None  # bytes; None when yt-dlp reports no size
     notes: tuple[str, ...] = ()  # user-facing notes on every deviation from the Choice
 

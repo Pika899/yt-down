@@ -180,7 +180,10 @@ def _choice(data: dict) -> Choice:
     language = data.get("audio_language")
     if language is not None and (not isinstance(language, str) or not language.strip()):
         raise ApiError("audio_language deve essere un codice lingua o null.")
-    return Choice(max_quality=quality, audio_language=language)
+    audio_only = data.get("audio_only", False)
+    if not isinstance(audio_only, bool):
+        raise ApiError("audio_only deve essere true o false.")
+    return Choice(max_quality=quality, audio_language=language, audio_only=audio_only)
 
 
 def _open_folder(folder: Path) -> None:

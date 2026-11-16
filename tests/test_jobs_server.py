@@ -283,6 +283,18 @@ def test_api_full_flow(api):
     assert api("/api/clear", {}) == (200, {"removed": 1})
 
 
+def test_api_starts_audio_only(api, backend):
+    assert api("/api/add", {"text": VIDEO_URL})[0] == 200
+    wait_for(lambda: api("/api/state")[1]["options"]["total"] == 1)
+    assert api("/api/start", {"max_quality": None, "audio_language": None, "audio_only": True}) == (
+        200,
+        {"started": 1},
+    )
+    wait_for(lambda: bool(backend.spawned))
+    assert api("/api/state")[1]["items"][0]["container"] == "mp3"
+    assert "-x" in backend.spawned[0]
+
+
 def test_api_serves_the_page(api):
     with urllib.request.urlopen(f"http://127.0.0.1:{api.port}/", timeout=5) as response:
         body = response.read().decode()
@@ -294,6 +306,7 @@ def test_api_rejects_bad_input(api):
     assert api("/api/add", {"text": "  "})[0] == 400
     assert api("/api/start", {"max_quality": "1080"})[0] == 400
     assert api("/api/start", {"max_quality": True})[0] == 400
+    assert api("/api/start", {"audio_only": "yes"})[0] == 400
     assert api("/api/settings", {"output_dir": "relative/path"})[0] == 400
     assert api("/api/items/999/explode", {})[0] == 404
     assert api("/api/items/999/cancel", {}) == (200, {"ok": False})

@@ -60,6 +60,15 @@ def test_download_args_keep_the_url_last_and_template_literal():
     assert args[args.index("-f") + 1] == "137+140"
     assert args[args.index("-o") + 1] == "/out/%(title)s.%(ext)s"
     assert "--no-playlist" in args
+    assert "--merge-output-format" in args
+
+
+def test_audio_download_args_extract_mp3():
+    args = progress.download_args("140", "mp3", "/out/%(title)s.%(ext)s", "https://x/watch?v=1")
+    assert "-x" in args
+    assert args[args.index("--audio-format") + 1] == "mp3"
+    assert "--embed-metadata" in args
+    assert "--merge-output-format" not in args
 
 
 def test_malformed_numbers_are_tolerated():

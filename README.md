@@ -52,7 +52,7 @@ Terminale (il motore): dopo aver chiuso l'app puoi chiuderla.
 ## Uso
 
 1. **Incolla i link**, uno per riga: video singoli e/o playlist. Premi **Analizza**.
-2. **Scegli** la risoluzione massima e, se i video hanno più lingue audio, la lingua.
+2. **Scegli** la risoluzione massima (oppure **Solo audio (MP3)**, che scarica solo l'audio e occupa molto meno spazio) e, se i video hanno più lingue audio, la lingua.
    Accanto a ogni opzione vedi quanti video la offrono (es. `1080p — 38/40 video`).
 3. Premi **Scarica**. La coda mostra avanzamento, errori e i file salvati.
 

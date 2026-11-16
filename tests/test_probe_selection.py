@@ -64,6 +64,27 @@ def test_language_matches_on_primary_subtag(multi_audio):
     assert lang_key(resolved.audio_language) == "it"
 
 
+def test_audio_only_requested_language(multi_audio):
+    resolved = selection.resolve(multi_audio, Choice(None, "it", audio_only=True))
+    assert (resolved.container, resolved.quality) == ("mp3", 0)
+    assert "+" not in resolved.format_spec
+    assert resolved.audio_language.startswith("it")
+    assert resolved.est_size == int(multi_audio.duration * 24000)
+
+
+def test_audio_only_missing_language_falls_back_to_original(multi_audio):
+    resolved = selection.resolve(multi_audio, Choice(None, "zz", audio_only=True))
+    track = next(t for t in multi_audio.audio_tracks if t.format_id == resolved.format_spec)
+    assert track.is_original
+    assert any("«zz» non disponibile" in note for note in resolved.notes)
+
+
+def test_audio_only_default_uses_original(low_res):
+    resolved = selection.resolve(low_res, Choice(None, None, audio_only=True))
+    track = next(t for t in low_res.audio_tracks if t.format_id == resolved.format_spec)
+    assert track.is_original
+
+
 def test_quality_is_a_ceiling(multi_audio):
     resolved = selection.resolve(multi_audio, Choice(2160, None))
     assert resolved.quality == 1080

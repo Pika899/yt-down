@@ -56,7 +56,7 @@
         <p id="choice-summary" class="mt-1 text-sm text-slate-700"></p>
         <form id="choice-form" class="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
-            <label for="quality" class="block text-sm font-medium">Risoluzione massima</label>
+            <label for="quality" class="block text-sm font-medium">Risoluzione massima o solo audio</label>
             <select id="quality"
                     class="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2 text-sm
                            focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600"></select>
@@ -242,6 +242,8 @@
       const suffix = options.total > 1 ? ` — ${count}/${options.total} video` : "";
       quality.append(new Option(`${value}p${suffix}`, String(value)));
     }
+    const audioSuffix = options.total > 1 ? ` — ${options.total}/${options.total} video` : "";
+    quality.append(new Option(`Solo audio (MP3)${audioSuffix}`, "audio"));
     if ([...quality.options].some((o) => o.value === previousQuality)) quality.value = previousQuality;
 
     const language = $("language"), previousLanguage = language.value;
@@ -278,8 +280,8 @@
     const meta = [];
     if (item.playlist_title) meta.push(`${item.playlist_title} · n. ${item.playlist_index}`);
     if (item.duration) meta.push(formatTime(item.duration));
-    if (item.quality) {
-      const parts = [`${item.quality}p`, languageName(item.audio_language), (item.container || "").toUpperCase()];
+    if (item.container) {
+      const parts = [item.container === "mp3" ? "Solo audio" : `${item.quality}p`, languageName(item.audio_language), (item.container || "").toUpperCase()];
       if (item.est_size) parts.push(`circa ${formatBytes(item.est_size)}`);
       meta.push(parts.filter(Boolean).join(" · "));
     }
@@ -288,7 +290,8 @@
 
     top.append(el("span",
       `shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATE_STYLE[item.state] || ""}`,
-      STATE_LABEL[item.state] || item.state));
+      item.state === "merging" && item.container === "mp3"
+        ? "Conversione in MP3…" : (STATE_LABEL[item.state] || item.state)));
     row.append(top);
 
     if (ACTIVE.has(item.state)) {
@@ -433,7 +436,8 @@
     try {
       const quality = $("quality").value, language = $("language").value;
       await api("/api/start", {
-        max_quality: quality ? Number(quality) : null,
+        max_quality: quality && quality !== "audio" ? Number(quality) : null,
+        audio_only: quality === "audio",
         audio_language: !$("language-field").hidden && language ? language : null,
       });
     } catch (error) {

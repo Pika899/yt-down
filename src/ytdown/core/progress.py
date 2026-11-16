@@ -42,12 +42,19 @@ Event = DownloadProgress | PostProcess | FinalFile | ErrorLine
 
 
 def download_args(format_spec: str, container: str, output_template: str, url: str) -> list[str]:
-    """yt-dlp arguments for one download, with machine-readable progress on stdout."""
+    """yt-dlp arguments for one download, with machine-readable progress on stdout.
+
+    For "mp3" only the audio stream is downloaded, then converted by ffmpeg; title and
+    channel go into the MP3 tags.
+    """
+    if container == "mp3":
+        output = ["-x", "--audio-format", "mp3", "--audio-quality", "192K", "--embed-metadata"]
+    else:
+        output = ["--merge-output-format", container]
     return [
         "-f",
         format_spec,
-        "--merge-output-format",
-        container,
+        *output,
         "--no-playlist",
         "--no-simulate",
         "--progress",
