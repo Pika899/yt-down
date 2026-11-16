@@ -100,6 +100,9 @@ def uv_path() -> str | None:
     return shutil.which("uv")
 
 
+_update_proc: subprocess.Popen | None = None
+
+
 def start_ytdlp_update() -> threading.Thread | None:
     """Upgrade yt-dlp in this environment in the background. Offline it just keeps the
     installed version."""
@@ -109,26 +112,35 @@ def start_ytdlp_update() -> threading.Thread | None:
     _ready.clear()
 
     def run() -> None:
+        global _update_proc
         env = dict(os.environ, VIRTUAL_ENV=sys.prefix, UV_HTTP_TIMEOUT="15")
         flags = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
         try:
-            subprocess.run(
+            _update_proc = subprocess.Popen(
                 [uv, "pip", "install", "--quiet", "--upgrade", "yt-dlp[default]"],
                 env=env,
                 stdin=subprocess.DEVNULL,
-                capture_output=True,
-                timeout=_UPDATE_TIMEOUT,
-                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 **flags,
             )
+            _update_proc.wait(timeout=_UPDATE_TIMEOUT)
         except (OSError, subprocess.SubprocessError):
-            pass
+            stop_ytdlp_update()
         finally:
             _ready.set()
 
     thread = threading.Thread(target=run, name="ytdlp-update", daemon=True)
     thread.start()
     return thread
+
+
+def stop_ytdlp_update() -> None:
+    """Stop an update still running when the app closes (it would keep files locked)."""
+    proc = _update_proc
+    if proc is not None and proc.poll() is None:
+        proc.kill()
+        proc.wait()
 
 
 def wait_until_ready() -> None:

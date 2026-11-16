@@ -66,6 +66,14 @@ jobs:
           $win = Get-Process | Where-Object { $_.MainWindowTitle -eq 'yt down' }
           Write-Host "window: $($win.ProcessName) '$($win.MainWindowTitle)'"
           if (-not $win) { throw "no 'yt down' window" }
+          if (-not (Test-Path "$dir\.venv\ytdown.pid")) { throw "no pid file for the installer" }
+
+          # A second start must bring the open window forward, not open another one.
+          Start-Process -WorkingDirectory $dir -FilePath "$dir\.venv\Scripts\pythonw.exe" -ArgumentList '-m', 'ytdown'
+          Start-Sleep 8
+          $wins = @(Get-Process | Where-Object { $_.MainWindowTitle -eq 'yt down' })
+          Write-Host "windows after second start: $($wins.Count)"
+          if ($wins.Count -ne 1) { throw "second start opened $($wins.Count) windows" }
 
           # yt-dlp must start from the console-less app. CI IPs may be blocked by YouTube,
           # so any answer from yt-dlp (ready or a YouTube error) is fine.
@@ -120,7 +128,9 @@ jobs:
 
       - name: Smoke test the app from the mounted DMG
         run: |
-          hdiutil attach -nobrowse -readonly dist/yt-down-mac.dmg
+          # hdiutil on CI runners sometimes fails with "Resource temporarily unavailable".
+          for i in 1 2 3 4 5; do hdiutil attach -nobrowse -readonly dist/yt-down-mac.dmg && break; sleep 10; done
+          test -d "/Volumes/yt down"
           app="/Volumes/yt down/yt down.app"
           # First start runs the launcher: prepares the environment, then the app.
           "$app/Contents/MacOS/yt-down" --no-browser --port 8792 > engine.log 2>&1 &

@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from . import links, options, probe, progress, runner, selection
+from . import links, options, probe, progress, runner, selection, tools
 from .models import (
     Choice,
     ItemState,
@@ -271,6 +271,7 @@ class Manager:
     def _download_unsafe(self, item_id: str, attempt: int) -> None:
         reprobed = False
         while True:
+            tools.wait_until_ready()  # never wait for the yt-dlp update while holding the lock
             with self._lock:
                 item = self._items.get(item_id)
                 if (

@@ -261,6 +261,7 @@ def api(tmp_path, backend, monkeypatch):
 
     call.manager = manager
     call.port = port
+    call.server = server
     yield call
     server.shutdown()
     server.server_close()
@@ -413,3 +414,11 @@ def test_busy_only_while_work_is_running(tmp_path, backend):
     backend.gate.set()
     wait_for(lambda: states(manager) == ["done"])
     assert not manager.busy()
+
+
+def test_second_start_focuses_the_open_window(api):
+    assert api("/api/focus", {}) == (200, {"focused": False})  # browser mode: no window
+    calls = []
+    api.server.focus_window = lambda: calls.append(1)
+    assert api("/api/focus", {}) == (200, {"focused": True})
+    assert calls == [1]

@@ -41,6 +41,15 @@ if errorlevel 1 (
     )
 )
 
+rem A sync interrupted halfway (e.g. connection lost) can leave a venv without packages.
+".venv\Scripts\python.exe" -c "import ytdown, webview, yt_dlp, imageio_ffmpeg" >nul 2>nul
+if errorlevel 1 (
+    echo.
+    echo ERRORE: yt down non e' completo. Controlla la connessione a internet e riprova.
+    if not defined SETUP_ONLY pause
+    exit /b 1
+)
+
 if defined SETUP_ONLY (
     rem Install the latest yt-dlp now, so the first start is ready to download.
     uv pip install --quiet --python ".venv\Scripts\python.exe" --upgrade "yt-dlp[default]"

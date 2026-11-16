@@ -8,15 +8,18 @@ python -m ytdown --no-browser  server only (tests, CI)
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
+import os
+import sys
 import threading
 import time
-import traceback
 import urllib.request
 import webbrowser
 from pathlib import Path
 
-from .core import tools
+from .applog import log_exception
+from .core import runner, tools
 from .core.jobs import Manager
 from .core.settings import Settings
 from .server import APP_ID, make_server
@@ -24,15 +27,25 @@ from .server import APP_ID, make_server
 DEFAULT_PORT = 8765
 _PORT_ATTEMPTS = 20
 _IDLE_EXIT_SECONDS = 90  # browser fallback without a console: exit once the page is gone
-_LOG = Path.home() / ".ytdown" / "ytdown.log"
+# The Windows installer reads this to close exactly this app before updating or uninstalling.
+_PID_FILE = Path(sys.prefix) / "ytdown.pid"
+
+
+def _call(port: int, path: str, body: dict | None = None) -> dict | None:
+    data = None if body is None else json.dumps(body).encode()
+    request = urllib.request.Request(f"http://127.0.0.1:{port}{path}", data=data)
+    if body is not None:
+        request.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(request, timeout=2) as response:
+            return json.load(response)
+    except (OSError, ValueError):
+        return None
 
 
 def _already_running(port: int) -> bool:
-    try:
-        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/ping", timeout=1) as response:
-            return json.load(response).get("app") == APP_ID
-    except (OSError, ValueError):
-        return False
+    answer = _call(port, "/api/ping")
+    return bool(answer) and answer.get("app") == APP_ID
 
 
 def _exit_when_page_gone(server, manager: Manager) -> None:
@@ -44,18 +57,26 @@ def _exit_when_page_gone(server, manager: Manager) -> None:
             return
 
 
+def _write_pid() -> None:
+    with contextlib.suppress(OSError):
+        _PID_FILE.write_text(str(os.getpid()), encoding="ascii")
+
+
+def _remove_pid() -> None:
+    with contextlib.suppress(OSError):
+        if _PID_FILE.read_text(encoding="ascii").strip() == str(os.getpid()):
+            _PID_FILE.unlink()
+
+
 def run(args: argparse.Namespace) -> int:
     window = not args.browser and not args.no_browser
 
     if _already_running(args.port):
+        # One app at a time: bring the open window to the front instead of a second one.
         url = f"http://127.0.0.1:{args.port}/"
         print(f"yt down è già in esecuzione: {url}")
-        if window:
-            from .desktop import open_window
-
-            if open_window(url, lambda: False):
-                return 0
-        if not args.no_browser:
+        focused = window and (_call(args.port, "/api/focus", {}) or {}).get("focused")
+        if not focused and not args.no_browser:
             webbrowser.open(url)
         return 0
 
@@ -74,14 +95,32 @@ def run(args: argparse.Namespace) -> int:
     url = f"http://127.0.0.1:{server.server_address[1]}/"
     print(f"yt down in esecuzione: {url}")
     print(f"Cartella download: {manager.settings.output_dir}")
+    _write_pid()
     tools.start_ytdlp_update()
     serving = threading.Thread(target=server.serve_forever, name="http", daemon=True)
     serving.start()
+    stopped = threading.Event()
+
+    def stop_everything() -> None:
+        """Stop all that could outlive the window: downloads, analyses, the update."""
+        if stopped.is_set():
+            return
+        stopped.set()
+        # Each step runs even if an earlier one fails: nothing may be left running.
+        for step in (manager.shutdown, runner.terminate_all, tools.stop_ytdlp_update, _remove_pid):
+            try:
+                step()
+            except Exception:
+                log_exception(f"closing: {step.__name__}")
+
     try:
         if window:
             from .desktop import open_window
 
-            if open_window(url, manager.busy):
+            def register_focus(focus) -> None:
+                server.focus_window = focus
+
+            if open_window(url, manager.busy, register_focus, stop_everything):
                 return 0
             # No native window available: use the browser and stop when the tab is closed.
             threading.Thread(
@@ -95,7 +134,7 @@ def run(args: argparse.Namespace) -> int:
     except KeyboardInterrupt:
         print("\nChiusura in corso…")
     finally:
-        manager.shutdown()
+        stop_everything()
         server.shutdown()
         server.server_close()
     return 0
@@ -111,10 +150,7 @@ def main() -> int:
     try:
         return run(args)
     except Exception:
-        # The Windows/macOS apps have no console: keep a trace for troubleshooting.
-        _LOG.parent.mkdir(parents=True, exist_ok=True)
-        with _LOG.open("a", encoding="utf-8") as log:
-            log.write(time.strftime("%Y-%m-%d %H:%M:%S ") + traceback.format_exc() + "\n")
+        log_exception("yt down stopped with an error")  # the apps have no console
         raise
 
 

@@ -35,6 +35,7 @@ def make_server(manager: Manager, port: int) -> ThreadingHTTPServer:
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
     server.last_seen = time.monotonic()  # last page poll; used to exit once the page is gone
+    server.focus_window = None  # set by the app window: brings it to the front
     return server
 
 
@@ -139,6 +140,12 @@ class _Handler(BaseHTTPRequestHandler):
             self._send_json(manager.add(text))
         elif path == "/api/start":
             self._send_json({"started": manager.start(_choice(data))})
+        elif path == "/api/focus":
+            # A second start of the app asks the running one to show its window.
+            focus = self.server.focus_window
+            if focus is not None:
+                focus()
+            self._send_json({"focused": focus is not None})
         elif path == "/api/clear":
             self._send_json({"removed": manager.clear_finished()})
         elif path == "/api/settings":

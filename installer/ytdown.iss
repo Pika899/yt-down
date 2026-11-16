@@ -1,4 +1,4 @@
-; Windows installer for yt down (Inno Setup 6). Built by .github/workflows/installers.yml:
+﻿; Windows installer for yt down (Inno Setup 6). Built by .github/workflows/installers.yml:
 ;   iscc /DAppVersion=1.0.0 installer\ytdown.iss
 ; Expects the uv executable at installer\bin\uv.exe (downloaded by the workflow).
 ; Per-user install, no admin rights: the app keeps its .venv inside {app}, so it must be writable.
@@ -54,18 +54,55 @@ Filename: "{app}\.venv\Scripts\pythonw.exe"; Parameters: "-m ytdown"; WorkingDir
 [UninstallDelete]
 ; Created by start-windows.bat --setup, not by the installer.
 Type: filesandordirs; Name: "{app}\.venv"
-Type: filesandordirs; Name: "{app}\src\ytdown.egg-info"
+Type: filesandordirs; Name: "{app}\src"
 
 [Code]
-procedure StopRunningApp();
+{ The app writes its process id to {app}\.venv\ytdown.pid. Only that process (and its
+  yt-dlp/ffmpeg children) is closed, after checking it really is yt down. }
+
+function RunPowerShell(Script: String): Integer;
 var
   ResultCode: Integer;
-  Script: String;
 begin
-  { Close yt down and its yt-dlp children, so their files can be replaced. Matched by command
-    line: the venv's pythonw.exe starts the real interpreter from uv's Python folder. }
-  Script := 'Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like ''*-m ytdown*'' -or $_.CommandLine -like ''*-m yt_dlp*'' } | Invoke-CimMethod -MethodName Terminate | Out-Null';
-  Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "' + Script + '"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  if not Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -Command "' + Script + '"',
+              '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    ResultCode := -1;
+  Result := ResultCode;
+end;
+
+function AppPid(): Integer;
+var
+  Text: AnsiString;
+begin
+  Result := 0;
+  if LoadStringFromFile(ExpandConstant('{app}\.venv\ytdown.pid'), Text) then
+    Result := StrToIntDef(Trim(String(Text)), 0);
+end;
+
+function AppRunning(Pid: Integer): Boolean;
+begin
+  Result := (Pid > 0) and (RunPowerShell(
+    'if (Get-CimInstance Win32_Process -Filter ''ProcessId=' + IntToStr(Pid) + ''' | ' +
+    'Where-Object { $_.CommandLine -like ''*-m ytdown*'' }) { exit 1 } else { exit 0 }') = 1);
+end;
+
+function CloseAppIfRunning(): Boolean;
+var
+  Pid, ResultCode: Integer;
+begin
+  Result := True;
+  Pid := AppPid();
+  if not AppRunning(Pid) then
+    exit;
+  if SuppressibleMsgBox('yt down è aperto e verrà chiuso: i download in corso si interrompono. Continuare?',
+                        mbConfirmation, MB_YESNO, IDYES) = IDNO then
+  begin
+    Result := False;
+    exit;
+  end;
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/PID ' + IntToStr(Pid) + ' /T /F', '', SW_HIDE,
+       ewWaitUntilTerminated, ResultCode);
+  RunPowerShell('Wait-Process -Id ' + IntToStr(Pid) + ' -Timeout 20 -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1');
 end;
 
 function AppReady(): Boolean;
@@ -75,9 +112,9 @@ end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
-  if DirExists(ExpandConstant('{app}')) then
-    StopRunningApp();
   Result := '';
+  if DirExists(ExpandConstant('{app}')) and not CloseAppIfRunning() then
+    Result := 'Installazione annullata: chiudi yt down e riprova.';
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -98,6 +135,5 @@ end;
 
 function InitializeUninstall(): Boolean;
 begin
-  StopRunningApp();
-  Result := True;
+  Result := CloseAppIfRunning();
 end;

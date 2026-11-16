@@ -40,4 +40,10 @@ if ! "$YTDOWN_UV" sync --frozen --no-dev --no-install-project --quiet >"$SUPPORT
 fi
 [ -n "$notice_pid" ] && kill "$notice_pid" 2>/dev/null
 
+# A sync interrupted halfway (e.g. connection lost) can leave a venv without packages.
+if ! "$VENV/bin/python" -c "import ytdown, webview, yt_dlp, imageio_ffmpeg" >>"$SUPPORT/setup.log" 2>&1; then
+  alert "yt down non è completo. Controlla la connessione a internet e riaprilo."
+  exit 1
+fi
+
 exec "$VENV/bin/python" -m ytdown "$@"

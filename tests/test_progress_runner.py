@@ -67,3 +67,35 @@ def test_malformed_numbers_are_tolerated():
     event = progress.parse_line(line)
     assert isinstance(event, progress.DownloadProgress)
     assert (event.downloaded, event.total, event.speed) == (0, None, None)
+
+
+def test_closing_stops_and_refuses_yt_dlp(monkeypatch):
+    killed = []
+    monkeypatch.setattr(runner, "_closed", False)
+    monkeypatch.setattr(runner, "_live", {"probe-process"})
+    monkeypatch.setattr(runner, "_kill_tree", killed.append)
+    runner.terminate_all()
+    assert killed == ["probe-process"]
+    try:
+        runner._start(["--version"])
+    except runner.YtDlpError:
+        pass
+    else:
+        raise AssertionError("yt-dlp started after the app closed")
+
+
+def test_killing_an_exiting_process_group_is_not_an_error(monkeypatch):
+    """macOS answers EPERM when a cancelled download's group is killed again on close."""
+
+    class Running:
+        pid = 12345
+
+        def poll(self):
+            return None
+
+    def refuse(pid, sig):
+        raise PermissionError(1, "Operation not permitted")
+
+    monkeypatch.setattr(runner.sys, "platform", "darwin")
+    monkeypatch.setattr(runner.os, "killpg", refuse)
+    runner._kill_tree(Running())  # must not raise
