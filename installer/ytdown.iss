@@ -58,8 +58,8 @@ Type: filesandordirs; Name: "{app}\.venv"
 Type: filesandordirs; Name: "{app}\src"
 
 [Code]
-{ The app writes its process id to {app}\.venv\ytdown.pid. Only that process (and its
-  yt-dlp/ffmpeg children) is closed, after checking it really is yt down. }
+// The app writes its process id to <app>\.venv\ytdown.pid. Only that process (and its
+// yt-dlp/ffmpeg children) is closed, after checking it really is yt down.
 
 function RunPowerShell(Script: String): Integer;
 var
