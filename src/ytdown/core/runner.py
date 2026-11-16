@@ -61,6 +61,7 @@ def _kill_tree(proc: subprocess.Popen) -> None:
 
 def run_json(args: list[str], timeout: float = 180) -> dict:
     """Run yt-dlp with `args` and parse the JSON it prints on stdout."""
+    tools.wait_until_ready()
     try:
         proc = subprocess.run(
             tools.base_argv() + args,
@@ -91,6 +92,7 @@ class Download:
     """A running yt-dlp download. Iterate `lines()` until it ends, then read `returncode`."""
 
     def __init__(self, args: list[str]) -> None:
+        tools.wait_until_ready()
         self._proc = subprocess.Popen(
             tools.base_argv() + args,
             stdout=subprocess.PIPE,

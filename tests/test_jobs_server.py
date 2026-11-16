@@ -397,3 +397,19 @@ def test_api_rejects_negative_content_length(api):
     connection.putheader("Content-Length", "-1")
     connection.endheaders()
     assert connection.getresponse().status == 400
+
+
+def test_busy_only_while_work_is_running(tmp_path, backend):
+    """The app asks before closing only when closing would interrupt something."""
+    backend.gate = threading.Event()
+    manager = make_manager(tmp_path, backend)
+    assert not manager.busy()
+    manager.add(VIDEO_URL)
+    wait_for(lambda: states(manager) == ["ready"])
+    assert not manager.busy()  # waiting for the user's choice: nothing to interrupt
+    manager.start(Choice(None, None))
+    wait_for(lambda: states(manager) == ["merging"])
+    assert manager.busy()
+    backend.gate.set()
+    wait_for(lambda: states(manager) == ["done"])
+    assert not manager.busy()

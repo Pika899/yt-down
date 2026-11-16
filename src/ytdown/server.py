@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -33,6 +34,7 @@ def make_server(manager: Manager, port: int) -> ThreadingHTTPServer:
     Handler.manager = manager
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     server.daemon_threads = True
+    server.last_seen = time.monotonic()  # last page poll; used to exit once the page is gone
     return server
 
 
@@ -118,6 +120,7 @@ class _Handler(BaseHTTPRequestHandler):
         elif path == "/api/ping":
             self._send_json({"app": APP_ID})
         elif path == "/api/state":
+            self.server.last_seen = time.monotonic()
             state = self.manager.snapshot()
             state["tools"] = tools.status()
             self._send_json(state)

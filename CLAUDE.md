@@ -14,8 +14,9 @@ decisioni aperte: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Guida utente:
 
 ```bash
 uv sync                                   # dipendenze (yt-dlp, deno, ffmpeg inclusi)
-uv run python -m ytdown                   # avvia l'app e apre il browser
-uv run python -m ytdown --no-browser --port 8791
+uv run python -m ytdown                   # finestra dell'app (pywebview); se manca, browser
+uv run python -m ytdown --browser         # pagina nel browser, Ctrl+C per chiudere
+uv run python -m ytdown --no-browser --port 8791   # solo server (test, CI)
 uv run pytest                             # test (offline, su fixture reali)
 uv run pytest tests/test_links.py -k playlist      # singolo test
 uvx ruff check --fix . && uvx ruff format .
@@ -28,11 +29,12 @@ Gli utenti finali avviano `start-windows.bat` / `start-mac.command`, che usano
 Installer: `.github/workflows/installers.yml` costruisce, testa e pubblica in un'unica
 Release, a ogni tag `v*` (`git tag v1.1.1 && git push origin v1.1.1`):
 - Windows `yt-down-setup.exe` (`installer/ytdown.iss`, Inno Setup): sorgenti + `uv.exe`,
-  lancia `start-windows.bat`.
+  `start-windows.bat --setup` prepara il venv durante l'installazione; i collegamenti
+  avviano `.venv\Scripts\pythonw.exe -m ytdown` (niente console).
 - Mac `yt-down-mac.dmg` (`macos/build-app.sh`, provabile in locale): `yt down.app` con
-  sorgenti + uv arm64 (solo Apple Silicon, niente Rosetta); `macos/launcher.sh` apre Terminale su `start-mac.command`, che
-  dentro un `.app` tiene il venv in `~/Library/Application Support/yt down/venv` e usa
-  `PYTHONPATH=src` (il bundle può essere di sola lettura o traslocato). Firma ad-hoc, non
+  sorgenti + uv arm64 (solo Apple Silicon, niente Rosetta); `macos/launcher.sh` (eseguibile del bundle) prepara il venv in
+  `~/Library/Application Support/yt down/venv`, usa `PYTHONPATH=src` (il bundle può essere
+  di sola lettura o traslocato) e fa `exec` di Python, che diventa il processo "yt down". Firma ad-hoc, non
   notarizzata.
 
 Entrambi lasciano yt-dlp aggiornabile a ogni avvio: non congelare l'app con PyInstaller.
@@ -52,6 +54,10 @@ Entrambi lasciano yt-dlp aggiornabile a ogni avvio: non congelare l'app con PyIn
   probe/download iniettati nel `Manager`. Mai scrivere a mano JSON che imiti yt-dlp.
 - Testi dell'interfaccia e messaggi all'utente in italiano; codice in inglese.
 - Il server accetta solo Host `127.0.0.1`/`localhost` e POST JSON: non allentare.
+- L'interfaccia è una sola (`web/index.html`): `desktop.py` la mostra in una finestra
+  pywebview (WebKit su Mac, WebView2 su Windows); il browser è solo il ripiego.
+- yt-dlp si aggiorna in background all'avvio (`tools.start_ytdlp_update`, via uv); ogni
+  chiamata a yt-dlp aspetta la fine dell'aggiornamento (`tools.wait_until_ready`).
 
 ## Orchestrazione
 

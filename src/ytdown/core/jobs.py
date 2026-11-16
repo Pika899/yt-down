@@ -440,6 +440,12 @@ class Manager:
 
     # ------------------------------------------------------------------ state
 
+    def busy(self) -> bool:
+        """True while anything is being analyzed, queued or downloaded."""
+        working = {ItemState.ANALYZING, ItemState.QUEUED, *_ACTIVE}
+        with self._lock:
+            return bool(self._expanding) or any(i.state in working for i in self._items.values())
+
     def snapshot(self) -> dict:
         with self._lock:
             items = [item.public() for item in self._items.values()]

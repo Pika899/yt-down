@@ -2,8 +2,9 @@
 
     uv run --with pillow python assets/make_icons.py
 
-Writes assets/icon-1024.png (macOS .icns is built from it by macos/build-app.sh) and
-assets/ytdown.ico (Windows installer and shortcuts).
+Writes assets/icon-1024.png (macOS .icns is built from it by macos/build-app.sh),
+assets/ytdown.ico (Windows installer and shortcuts) and the copies the app window uses:
+src/ytdown/web/icon.png and src/ytdown/web/icon.ico.
 """
 
 from pathlib import Path
@@ -11,6 +12,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 HERE = Path(__file__).parent
+WEB = HERE.parent / "src" / "ytdown" / "web"
 RED = (229, 31, 38, 255)
 WHITE = (255, 255, 255, 255)
 SCALE = 4  # draw large, then downsample for smooth edges
@@ -38,12 +40,14 @@ def draw(size: int = 1024, margin: int = 100) -> Image.Image:
 
 
 def main() -> None:
-    draw().save(HERE / "icon-1024.png")
+    big = draw()
+    big.save(HERE / "icon-1024.png")
+    big.resize((512, 512), Image.LANCZOS).save(WEB / "icon.png")
     # Windows icons look better edge to edge, with a thinner margin.
-    draw(256, margin=8).save(
-        HERE / "ytdown.ico",
-        sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
-    )
+    ico = draw(256, margin=8)
+    sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+    for target in (HERE / "ytdown.ico", WEB / "icon.ico"):
+        ico.save(target, sizes=sizes)
 
 
 if __name__ == "__main__":

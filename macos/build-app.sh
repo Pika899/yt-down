@@ -1,8 +1,8 @@
 #!/bin/bash
 # Build "yt down.app" and yt-down-mac.dmg. Run on macOS from the repository root:
 #   macos/build-app.sh 1.0.1 dist
-# Apple Silicon only. The app bundles the sources and an arm64 uv; at launch it opens Terminal running
-# start-mac.command, which prepares Python + dependencies outside the bundle and updates yt-dlp.
+# Apple Silicon only. The app bundles the sources and an arm64 uv; macos/launcher.sh prepares
+# Python + dependencies outside the bundle and opens the app window (pywebview).
 set -euo pipefail
 
 VERSION="${1:?version}"
@@ -16,8 +16,7 @@ mkdir -p "$APP/Contents/MacOS" "$RES/bin"
 
 # Sources and launcher.
 rsync -a --exclude __pycache__ --exclude '*.pyc' "$ROOT/src" "$RES/"
-cp "$ROOT/pyproject.toml" "$ROOT/uv.lock" "$ROOT/README.md" "$ROOT/start-mac.command" "$RES/"
-chmod +x "$RES/start-mac.command"
+cp "$ROOT/pyproject.toml" "$ROOT/uv.lock" "$ROOT/README.md" "$RES/"
 
 # uv for Apple Silicon only (arm64): the app targets M-series Macs and never uses Rosetta.
 TMP="$(mktemp -d)"

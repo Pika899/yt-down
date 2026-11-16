@@ -1,18 +1,20 @@
 # yt down
 
 Scarica video e playlist di YouTube sul tuo computer, scegliendo risoluzione e lingua
-audio. Funziona nel browser ma gira tutto sul tuo PC: nessun sito esterno, nessun account.
+audio. È un'app con la sua finestra e gira tutto sul tuo PC: nessun sito esterno, nessun
+account.
 
 ## Installazione su Windows (consigliata)
 
 1. Scarica **[yt-down-setup.exe](https://github.com/Pika899/yt-down/releases/latest/download/yt-down-setup.exe)**.
 2. Aprilo. Se compare "Windows ha protetto il PC": **Ulteriori informazioni** →
    **Esegui comunque** (succede perché l'installer non è firmato).
-3. Segui i passaggi: non servono permessi di amministratore. Alla fine trovi
-   **yt down** sul Desktop e nel menu Start.
+3. Segui i passaggi: non servono permessi di amministratore. Durante l'installazione
+   vengono scaricati Python, yt-dlp, Deno e ffmpeg (qualche minuto, serve internet).
+   Alla fine trovi **yt down** sul Desktop e nel menu Start.
 
-Al primo avvio yt down scarica da solo Python, yt-dlp, Deno e ffmpeg (qualche minuto,
-serve internet). Per disinstallarlo: Impostazioni → App → yt down → Disinstalla.
+Per aggiornarlo basta riaprire un installer più nuovo, anche con yt down aperto.
+Per disinstallarlo: Impostazioni → App → yt down → Disinstalla.
 
 ## Installazione su Mac (consigliata)
 
@@ -24,8 +26,8 @@ serve internet). Per disinstallarlo: Impostazioni → App → yt down → Disins
    Privacy e sicurezza**, scorri in basso e premi **Apri comunque** accanto a "yt down".
    Dalla volta dopo si apre normalmente.
 
-Al primo avvio yt down scarica da solo Python, yt-dlp, Deno e ffmpeg (circa un minuto,
-serve internet). Per disinstallarlo: trascina yt down nel Cestino e, se vuoi, cancella
+Al primo avvio yt down scarica da solo Python, yt-dlp, Deno e ffmpeg (un paio di minuti,
+serve internet): un avviso te lo dice e la finestra si apre da sola. Per disinstallarlo: trascina yt down nel Cestino e, se vuoi, cancella
 la cartella `~/Library/Application Support/yt down`.
 
 ## Installazione dallo ZIP (senza installer)
@@ -43,8 +45,9 @@ la cartella `~/Library/Application Support/yt down`.
 - **Mac dallo ZIP:** clic destro su `start-mac.command` → **Apri** → **Apri** (solo la prima volta;
   poi basta il doppio clic).
 
-Si apre una finestra nera (lasciala aperta: è il motore) e il browser su
-`http://127.0.0.1:8765`. Per chiudere yt down chiudi la finestra nera.
+Si apre la finestra di yt down. Per chiuderlo chiudi la finestra: se ci sono video in
+download ti chiede conferma. Solo su Mac dallo ZIP resta aperta anche la finestra del
+Terminale (il motore): dopo aver chiuso l'app puoi chiuderla.
 
 ## Uso
 
@@ -76,7 +79,8 @@ non si perdono.
 |---|---|
 | Molti video in errore all'improvviso (`HTTP Error 403`, "format not available") | Chiudi e riapri yt down: aggiorna yt-dlp. |
 | "Installazione di uv non riuscita" | Installa uv a mano da <https://docs.astral.sh/uv/getting-started/installation/> e riavvia. |
-| Il browser non si apre | Apri tu `http://127.0.0.1:8765` (il numero esatto è scritto nella finestra nera). |
+| Si apre il browser invece della finestra | Su Windows manca il componente Microsoft Edge WebView2 (raro su Windows 10/11 aggiornati): installalo da <https://developer.microsoft.com/microsoft-edge/webview2/>. Intanto yt down funziona nel browser e si chiude da solo quando chiudi la scheda. |
+| yt down non si apre affatto | Guarda il file `ytdown.log` nella cartella `.ytdown` della tua cartella utente e mandalo a chi te l'ha installato. |
 | Video privato / rimosso / con limiti d'età | Non scaricabile: viene segnato in errore e gli altri proseguono. |
 
 ## Uso consentito

@@ -6,14 +6,25 @@ needs nothing on the system PATH. PATH is only a fallback.
 
 from __future__ import annotations
 
+import os
 import shutil
+import subprocess
 import sys
+import threading
 from importlib import metadata
 from pathlib import Path
 
 # The default yt-dlp clients expose only the original audio track. `web_embedded`
 # also returns dubbed tracks; keeping `default` covers videos that cannot be embedded.
 EXTRACTOR_ARGS = "youtube:player_client=default,web_embedded"
+
+
+def python_executable() -> str:
+    """Console Python for subprocesses: under pythonw.exe (Windows app) use python.exe."""
+    exe = Path(sys.executable)
+    if exe.name.lower() == "pythonw.exe" and exe.with_name("python.exe").is_file():
+        return str(exe.with_name("python.exe"))
+    return sys.executable
 
 
 def deno_path() -> str | None:
@@ -44,7 +55,7 @@ def ytdlp_version() -> str | None:
 def base_argv() -> list[str]:
     """Command prefix shared by every yt-dlp invocation."""
     argv = [
-        sys.executable,
+        python_executable(),
         "-m",
         "yt_dlp",
         "--ignore-config",
@@ -67,3 +78,58 @@ def status() -> dict[str, object]:
         "deno": deno_path() is not None,
         "ffmpeg": ffmpeg_path() is not None,
     }
+
+
+# --- yt-dlp self-update -------------------------------------------------------------
+# YouTube changes often, so each start upgrades yt-dlp in the background with uv. Every
+# yt-dlp call waits (bounded) for the upgrade, so a run never sees a half-installed package.
+
+_ready = threading.Event()
+_ready.set()
+_UPDATE_TIMEOUT = 120
+
+
+def uv_path() -> str | None:
+    """uv from YTDOWN_UV, the installer layout (<app>/bin next to <app>/.venv), or PATH."""
+    candidates = [os.environ.get("YTDOWN_UV")]
+    app_bin = Path(sys.prefix).parent / "bin"
+    candidates += [str(app_bin / "uv.exe"), str(app_bin / "uv")]
+    for candidate in candidates:
+        if candidate and Path(candidate).is_file():
+            return candidate
+    return shutil.which("uv")
+
+
+def start_ytdlp_update() -> threading.Thread | None:
+    """Upgrade yt-dlp in this environment in the background. Offline it just keeps the
+    installed version."""
+    uv = uv_path()
+    if uv is None:
+        return None
+    _ready.clear()
+
+    def run() -> None:
+        env = dict(os.environ, VIRTUAL_ENV=sys.prefix, UV_HTTP_TIMEOUT="15")
+        flags = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
+        try:
+            subprocess.run(
+                [uv, "pip", "install", "--quiet", "--upgrade", "yt-dlp[default]"],
+                env=env,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                timeout=_UPDATE_TIMEOUT,
+                check=False,
+                **flags,
+            )
+        except (OSError, subprocess.SubprocessError):
+            pass
+        finally:
+            _ready.set()
+
+    thread = threading.Thread(target=run, name="ytdlp-update", daemon=True)
+    thread.start()
+    return thread
+
+
+def wait_until_ready() -> None:
+    _ready.wait(_UPDATE_TIMEOUT + 10)
