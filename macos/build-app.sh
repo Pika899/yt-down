@@ -16,7 +16,7 @@ mkdir -p "$APP/Contents/MacOS" "$RES/bin"
 
 # Sources and launcher.
 rsync -a --exclude __pycache__ --exclude '*.pyc' "$ROOT/src" "$RES/"
-cp "$ROOT/pyproject.toml" "$ROOT/uv.lock" "$ROOT/README.md" "$RES/"
+cp "$ROOT/pyproject.toml" "$ROOT/uv.lock" "$ROOT/.python-version" "$ROOT/README.md" "$RES/"
 
 # uv for Apple Silicon only (arm64): the app targets M-series Macs and never uses Rosetta.
 TMP="$(mktemp -d)"

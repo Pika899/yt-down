@@ -39,6 +39,7 @@ Name: "desktopicon"; Description: "Crea un'icona sul Desktop"; GroupDescription:
 Source: "..\src\*"; DestDir: "{app}\src"; Excludes: "__pycache__,*.pyc"; Flags: recursesubdirs ignoreversion
 Source: "..\pyproject.toml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\uv.lock"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\.python-version"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\start-windows.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "bin\uv.exe"; DestDir: "{app}\bin"; Flags: ignoreversion

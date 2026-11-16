@@ -21,6 +21,9 @@ mkdir -p "$SUPPORT"
 export UV_PROJECT_ENVIRONMENT="$VENV"
 export PYTHONPATH="$APP_DIR/src"
 export YTDOWN_UV="$APP_DIR/bin/uv"
+# Always uv's own Python (pinned in .python-version): a Homebrew/framework Python would
+# re-exec as Python.app and the window would show up as "Python".
+export UV_PYTHON_PREFERENCE=only-managed
 unset VIRTUAL_ENV
 cd "$APP_DIR" || exit 1
 

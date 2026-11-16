@@ -97,5 +97,5 @@ def test_killing_an_exiting_process_group_is_not_an_error(monkeypatch):
         raise PermissionError(1, "Operation not permitted")
 
     monkeypatch.setattr(runner.sys, "platform", "darwin")
-    monkeypatch.setattr(runner.os, "killpg", refuse)
+    monkeypatch.setattr(runner.os, "killpg", refuse, raising=False)  # absent on Windows
     runner._kill_tree(Running())  # must not raise

@@ -15,6 +15,7 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 1
 fi
 
+export UV_PYTHON_PREFERENCE=only-managed  # uv's own Python, pinned in .python-version
 echo "Preparo yt down (la prima volta richiede qualche minuto)..."
 if ! uv sync --frozen --no-dev --quiet; then
   echo "ERRORE: installazione delle dipendenze non riuscita. Controlla la connessione e riprova."

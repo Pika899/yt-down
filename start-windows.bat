@@ -29,6 +29,8 @@ if errorlevel 1 (
     exit /b 1
 )
 for /f "delims=" %%U in ('where uv') do if not defined YTDOWN_UV set "YTDOWN_UV=%%U"
+rem Always uv's own Python (pinned in .python-version), never a system one.
+set "UV_PYTHON_PREFERENCE=only-managed"
 
 echo Preparo yt down ^(la prima volta richiede qualche minuto^)...
 uv sync --frozen --no-dev --quiet
